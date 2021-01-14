@@ -4,9 +4,8 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-import math
 from io import BytesIO
-from typing import List, Tuple
+from typing import List, Tuple, Union
 from urllib.request import urlopen
 from zipfile import ZipFile
 
@@ -148,21 +147,63 @@ def quat_rotate_vector(q: np.quaternion, v: np.ndarray) -> np.ndarray:
     vq.imag = v
     return (q * vq * q.inverse()).imag
 
+def quat_to_list(q: np.quaternion):
+    return q.imag.tolist() + [q.real]
 
-def random_quaternion():
-    r"""Convenience function to sample a random Magnum::Quaternion.
-    See http://planning.cs.uiuc.edu/node198.html.
+def quaternion_xyzw_to_wxyz(v: np.array):
+    return np.quaternion(v[3], *v[0:3])
+
+
+def quaternion_wxyz_to_xyzw(v: np.array):
+    return np.quaternion(*v[1:4], v[0])
+
+def cartesian_to_polar(x, y):
+    rho = np.sqrt(x ** 2 + y ** 2)
+    phi = np.arctan2(y, x)
+    return rho, phi
+    
+def agent_state_target2ref(
+    ref_agent_state: Union[List, Tuple], target_agent_state: Union[List, Tuple]
+) -> List:
+    r"""Computes the target agent_state's position and rotation representation
+    with respect to the coordinate system defined by reference agent's position and rotation.
+    All rotations must be in [x, y, z, w] format.
+    :param ref_agent_state: reference agent_state in the format of [position, rotation].
+         The position and roation are from a common/global coordinate systems.
+         They define a local coordinate system.
+    :param target_agent_state: target agent_state in the format of [position, rotation].
+        The position and roation are from a common/global coordinate systems.
+        and need to be transformed to the local coordinate system defined by ref_agent_state.
     """
-    u = np.random.rand(3)
-    qAxis = np.array(
-        [
-            math.sqrt(1 - u[0]) * math.cos(2 * math.pi * u[1]),
-            math.sqrt(u[0]) * math.sin(2 * math.pi * u[2]),
-            math.sqrt(u[0]) * math.cos(2 * math.pi * u[2]),
-        ]
-    )
-    return mn.Quaternion(qAxis, math.sqrt(1 - u[0]) * math.sin(2 * math.pi * u[1]))
 
+    assert (
+        len(ref_agent_state[0]) == 3
+    ), "Only support Cartesian format currently."
+    assert (
+        len(target_agent_state[0]) == 3
+    ), "Only support Cartesian format currently."
+
+    ref_position, ref_rotation = ref_agent_state
+    target_position, target_rotation = target_agent_state
+
+    # convert to all rotation representations to np.quaternion
+    if not isinstance(ref_rotation, np.quaternion):
+        ref_rotation = quat_from_coeffs(ref_rotation)
+    ref_rotation = ref_rotation.normalized()
+
+    if not isinstance(target_rotation, np.quaternion):
+        target_rotation = quat_from_coeffs(target_rotation)
+    target_rotation = target_rotation.normalized()
+
+    position_in_ref_coordinate = quat_rotate_vector(
+        ref_rotation.inverse(), target_position - ref_position
+    )
+
+    rotation_in_ref_coordinate = quat_to_list(
+        ref_rotation.inverse() * target_rotation
+    )
+
+    return [position_in_ref_coordinate, rotation_in_ref_coordinate]
 
 def download_and_unzip(file_url, local_directory):
     response = urlopen(file_url)

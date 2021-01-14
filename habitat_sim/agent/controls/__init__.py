@@ -8,10 +8,12 @@ from habitat_sim.agent.controls.controls import ActuationSpec, SceneNodeControl
 from habitat_sim.agent.controls.default_controls import *
 from habitat_sim.agent.controls.object_controls import ObjectControls
 from habitat_sim.agent.controls.pyrobot_noisy_controls import PyRobotNoisyActuationSpec
+from habitat_sim.agent.controls.regression_noisy_controls import RegressionActuationSpec
 
 __all__ = [
     "ActuationSpec",
     "ObjectControls",
     "SceneNodeControl",
     "PyRobotNoisyActuationSpec",
+    "RegressionActuationSpec",
 ]

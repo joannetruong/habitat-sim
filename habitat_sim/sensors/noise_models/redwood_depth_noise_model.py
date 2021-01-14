@@ -4,7 +4,7 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-from os import path as osp
+import os.path as osp
 
 import attr
 import numba
@@ -64,6 +64,7 @@ def _simulate(gt_depth, model, noise_multiplier):
             d = gt_depth[y - y % 2, x - x % 2]
             # If the depth is greater than 10, the sensor will just return 0
             if d >= 10.0:
+#                noisy_depth[j, i] = 10.0
                 noisy_depth[j, i] = 0.0
             else:
                 # Distort
